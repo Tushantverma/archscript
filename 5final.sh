@@ -76,3 +76,161 @@ systemctl enable ${SCRUB}
 systemctl enable snapper-timeline.timer
 systemctl enable snapper-cleanup.timer
 
+
+
+
+##--------------------------------------------------------------------------------------------------##
+
+echo "##########################################################################"
+echo "######################## getting arco key and repo #######################"
+echo "##########################################################################"
+
+pacman -S --noconfirm git
+git clone --depth 1 https://github.com/arcolinux/arcolinux-spices.git
+./arcolinux-spices/usr/share/arcolinux-spices/scripts/get-the-keys-and-repos.sh
+pacman -Syyy
+rm -rf arcolinux-spices
+# source :- https://www.arcolinux.info/arcolinux-spices-application/
+
+
+
+
+echo "##########################################################################"
+echo "###################### install all needed packages #######################"
+echo "##########################################################################"
+
+pkgs=(
+
+############### Display pkg ################
+xorg-server
+xorg-apps
+xorg-xinit
+mesa
+intel-ucode
+# xf86-video-intel ## not installing this pkg because its changing display name, giving error for other pkg (eg. vibrent-linux)
+
+grub
+grub-btrfs
+efibootmgr
+networkmanager
+network-manager-applet
+os-prober
+bash-completion
+
+gparted
+dosfstools    # required by gparted
+mtools        # required by gparted
+
+bat
+htop
+neofetch
+sublime-text-4
+yay
+thunar
+gvfs
+gvfs-afc
+thunar-volman
+tumbler
+ffmpegthumbnailer
+thunar-archive-plugin
+thunar-media-tags-plugin
+pavucontrol
+mpv
+pulseaudio
+pulseaudio-alsa
+ntfs-3g
+feh
+xfce4-terminal
+sxhkd
+rofi
+ttf-iosevka-nerd
+ttf-indic-otf
+polkit-gnome
+man-db
+fzf
+xclip
+chezmoi
+tree
+tldr
+light
+alsa-utils
+net-tools
+wireless_tools
+file-roller
+yt-dlp
+meld
+catfish
+
+#### themes ####
+lxappearance
+qt5ct
+a-candy-beauty-icon-theme-git
+sweet-cursor-theme-git
+sweet-gtk-theme-dark
+xcursor-breeze
+arc-blackest-theme-git
+
+# linux-headers-lts
+# linux-lts
+# dialogs
+# reflector
+
+)
+
+pacman -S --noconfirm --needed "${pkgs[@]}"
+
+
+
+
+
+
+
+echo "##########################################################################"
+echo "####################### searching for virtualization #####################"
+echo "##########################################################################"
+
+hypervisor=$(systemd-detect-virt)
+    case $hypervisor in
+        none )      echo "main machine is detected"
+                    pacman --noconfirm -S picom 
+                    ;;
+        kvm )       echo "KVM has been detected, setting up guest tools."
+                    #pacstrap /mnt qemu-guest-agent &>/dev/null
+                    #systemctl enable qemu-guest-agent --root=/mnt &>/dev/null
+                    ;;
+        vmware  )   echo "VMWare Workstation/ESXi has been detected, setting up guest tools."
+                    #pacstrap /mnt open-vm-tools >/dev/null
+                    #systemctl enable vmtoolsd --root=/mnt &>/dev/null
+                    #systemctl enable vmware-vmblock-fuse --root=/mnt &>/dev/null
+                    ;;
+        oracle )    echo "VirtualBox has been detected, setting up guest tools."
+                    pacman --noconfirm -S virtualbox-guest-utils 
+                    systemctl enable vboxservice.service
+                    ;;
+        microsoft ) echo "Hyper-V has been detected, setting up guest tools."
+                    #pacstrap /mnt hyperv &>/dev/null
+                    #systemctl enable hv_fcopy_daemon --root=/mnt &>/dev/null
+                    #systemctl enable hv_kvp_daemon --root=/mnt &>/dev/null
+                    #systemctl enable hv_vss_daemon --root=/mnt &>/dev/null
+                    ;;
+    esac
+
+
+
+
+
+echo "##########################################################################"
+echo "########################## setting up my config ##########################"
+echo "##########################################################################"
+
+
+echo "Enter Your Username : "
+read username
+
+su - $username -c "chezmoi init --apply https://github.com/tushantverma/dotfiles"
+./home/$username/.myscripts/1_setup_all.sh
+
+
+
+
+
